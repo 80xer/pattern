@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.디자인 패턴</title>
+  <script type="module">
+  </script>
+</head>
+
+<body>
+  <img id="a" src="" alt="">
+  <div id="b"></div>
+  <script type="module">
+    import { Octokit } from "https://cdn.pika.dev/@octokit/core";
+
+    const Github = class {
+      constructor(owner, repo) {
+        this._owner = owner;
+        this._repo = repo;
+      }
+      async load(path) {
+        const octokit = new Octokit({ auth: '6da658aeac945d88af1deb52e5cbfa490fe1c602' });
+        const res = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+          owner: this._owner,
+          repo: this._repo,
+          path: path
+        })
+
+        this._parser(res.data.content);
+      }
+      set parser(f) {
+        this._parser = f;
+      }
+    }
+
+    const main = async () => {
+      const loader = new Github('lawcompany', 'lawtalk');
+
+      loader.parser = (content) => document.querySelector('#a').src = 'data:text/plain;base64,' + content;
+      await loader.load('client/assets/images/banner_lawyer.jpg');
+
+      loader.parser = (content) => document.querySelector('#b').innerHTML = parserMD(content);
+      await loader.load('README.md');
+    }
+
+    main();
+
+    const parserMD = content => d64(content).split('\n').map(v => {
+      let i = 3;
+      while (i--) {
+        if (v.startsWith('#'.repeat(i + 1))) return `<h${i + 1}>${v.substr(i + 1)}</h${i + 1}>`;
+      }
+      return;
+    }).join('<br>');
+
+    const d64 = content => decodeURIComponent(
+      atob(content).split('').map(c => '%' + c.charCodeAt().toString(16).padStart(2, '0')).join('')
+    );
+  </script>
+</body>
+
+</html>

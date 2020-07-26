@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1. 디자인 패턴</title>
+  <script type="module">
+  </script>
+</head>
+
+<body>
+  <img id="a" src="" alt="">
+  <div id="b"></div>
+  <script type="module">
+    import { Octokit } from "https://cdn.pika.dev/@octokit/core";
+
+    const Github = class {
+      constructor(owner, repo) {
+        this._owner = owner;
+        this._repo = repo;
+      }
+      async load(path) {
+        const octokit = new Octokit({ auth: '6da658aeac945d88af1deb52e5cbfa490fe1c602' });
+        const res = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+          owner: this._owner,
+          repo: this._repo,
+          path: path
+        })
+
+        this._loaded(res.data.content);
+      }
+      _loaded(v) { throw new Error('override') }
+    }
+
+    const ImageLoader = class extends Github {
+      constructor(id, repo, target) {
+        super(id, repo);
+        this._target = target;
+      }
+      _loaded(content) {
+        this._target.src = 'data:text/plain;base64,' + content;
+      }
+    }
+
+    const imageLoader = new ImageLoader('lawcompany', 'lawtalk', document.querySelector('#a'));
+    imageLoader.load('client/assets/images/banner_lawyer.jpg');
+
+    const MdLoader = class extends Github {
+      constructor(owner, repo, target) {
+        super(owner, repo);
+        this._target = target;
+      }
+      _loaded(content) {
+        this._target.innerHTML = this._parserMD(content);
+      }
+      _parserMD(content) {
+        return d64(content).split('\n').map(v => {
+          let i = 3;
+          while (i--) {
+            if (v.startsWith('#'.repeat(i + 1))) return `<h${i + 1}>${v.substr(i + 1)}</h${i + 1}>`;
+          }
+          return;
+        }).join('<br>');
+      };
+    }
+
+    const mdLoader = new MdLoader('lawcompany', 'lawtalk', document.querySelector('#b'));
+    mdLoader.load('README.md');
+
+
+    const d64 = content => decodeURIComponent(
+      atob(content).split('').map(c => '%' + c.charCodeAt().toString(16).padStart(2, '0')).join('')
+    );
+  </script>
+</body>
+
+</html>
